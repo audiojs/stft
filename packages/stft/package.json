@@ -1,18 +1,36 @@
 {
   "name": "@audio/stft",
-  "version": "0.0.0",
-  "description": "Shared STFT — batch / stream / analyse, one canonical implementation for all @audio packages",
+  "version": "1.0.0",
   "type": "module",
   "sideEffects": false,
-  "private": true,
+  "description": "Canonical STFT \u2014 batch / stream / analyse with normalized Hann OLA; stream \u2261 batch under any chunking",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "stft.js",
+    "util.js"
+  ],
+  "dependencies": {
+    "fourier-transform": "^2.3.0"
+  },
   "keywords": [
     "audio",
     "dsp",
-    "stft"
+    "stft",
+    "fft",
+    "overlap-add",
+    "spectral"
   ],
   "license": "MIT",
   "author": "Dmitry Iv. <dfcreative@gmail.com>",
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
