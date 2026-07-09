@@ -1,8 +1,6 @@
 import test, { almost, ok, is } from 'tst'
 import { stftBatch, stftStream, stftAnalyse, hannWindow } from '@audio/stft'
 import window, { apply, cola, hann } from '@audio/window'
-import * as bq from '@audio/biquad'
-import { lowpass as dfLowpass, highpass as dfHighpass, peaking as dfPeaking } from 'digital-filter/iir/biquad.js'
 
 const fs = 44100
 const identity = (mag, phase) => ({ mag, phase })
@@ -72,38 +70,4 @@ test('window — apply, unknown name throws, re-exports window-function', () => 
 	try { window('nosuch', 64) } catch { threw = true }
 	ok(threw)
 	is(typeof hann, 'function')
-})
-
-test('biquad — differential vs digital-filter (scijs reference) <1e-9', () => {
-	for (let [mine, ref, args] of [
-		[bq.lowpass, dfLowpass, [1000, 0.707, fs]],
-		[bq.highpass, dfHighpass, [500, 1.2, fs]],
-	]) {
-		let a = mine(...args), b = ref(...args)
-		for (let k of ['b0', 'b1', 'b2', 'a1', 'a2']) almost(a[k], b[k], 1e-9, `${k}`)
-	}
-	let p = bq.peaking(2000, 1, fs, 6), pr = dfPeaking(2000, 1, fs, 6)
-	for (let k of ['b0', 'b1', 'b2', 'a1', 'a2']) almost(p[k], pr[k], 1e-9)
-})
-
-test('biquad — magnitude responses honor the spec', () => {
-	let lp = bq.lowpass(1000, Math.SQRT1_2, fs)
-	almost(bq.magnitude(lp, 1000, fs), Math.SQRT1_2, 0.01, '−3 dB at cutoff')
-	ok(bq.magnitude(lp, 100, fs) > 0.99, 'passband flat')
-	ok(bq.magnitude(lp, 10000, fs) < 0.02, 'stopband −34 dB+')
-	let pk = bq.peaking(2000, 1, fs, 6)
-	almost(20 * Math.log10(bq.magnitude(pk, 2000, fs)), 6, 0.05, '+6 dB at center')
-	let ap = bq.allpass(3000, 0.707, fs)
-	almost(bq.magnitude(ap, 500, fs), 1, 1e-6)
-	almost(bq.magnitude(ap, 8000, fs), 1, 1e-6)
-})
-
-test('biquad — stateful chunked processing ≡ one pass', () => {
-	let c = bq.lowpass(2000, 0.707, fs)
-	let x = sine(440, 8192)
-	let whole = bq.process(Float32Array.from(x), c)
-	let chunked = Float32Array.from(x)
-	let s = bq.state()
-	for (let pos = 0; pos < chunked.length; pos += 555) bq.process(chunked.subarray(pos, Math.min(pos + 555, chunked.length)), c, s)
-	ok(maxDiff(whole, chunked) < 1e-12, 'state carries across chunks')
 })

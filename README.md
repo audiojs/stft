@@ -1,13 +1,16 @@
-# @audio/primitives
+# stft
 
-> Shared primitives `@audio/stft`, `@audio/window`, `@audio/biquad` — published.
+> Canonical STFT + window for the `@audio` ecosystem — [`@audio/stft`](packages/stft), [`@audio/window`](packages/window).
 
-Today each family carries its own copy (deliberately, until these publish):
-
-| Primitive | Current copies (dedupe sources) |
+| Package | What |
 |---|---|
-| `@audio/stft` | `denoise/packages/denoise-core/stft.js` (canonical: batch/stream/analyse), `shift`/`stretch` core STFTs |
-| `@audio/window` | `window-function` (scijs — stays), `denoise-core/util.js` hannWindow |
-| `@audio/biquad` | `dynamics-core/biquad.js`, `@audio/filter-biquad`, `digital-filter/iir/biquad` (scijs — stays) |
+| [`@audio/stft`](packages/stft) | Canonical STFT — batch / stream / analyse with normalized Hann OLA; stream ≡ batch under any chunking (includes the ring-compaction fix shared with `denoise-core`) |
+| [`@audio/window`](packages/window) | Audio-facing window kit — typed periodic/symmetric fills, apply, COLA check over [`window-function`](https://github.com/scijs/window-function) (scijs — stays) |
 
-Family cores can now swap their local copies for these — behind differential tests, per the audio-module migration plan (`@audio/biquad` is differential-tested against digital-filter; `@audio/stft` is the denoise-core implementation verbatim, including the ring-compaction fix both share).
+Dedupe targets: `denoise/packages/denoise-core/stft.js` (canonical source, extracted verbatim), `shift`/`stretch` core STFTs, `denoise-core/util.js` hannWindow — family cores swap their local copies for these behind differential tests.
+
+The biquad kernel lives with the filters: [`@audio/biquad`](https://github.com/audiojs/filter/tree/main/packages/biquad).
+
+## License
+
+MIT

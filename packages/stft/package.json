@@ -1,9 +1,9 @@
 {
   "name": "@audio/stft",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "sideEffects": false,
-  "description": "Canonical STFT \u2014 batch / stream / analyse with normalized Hann OLA; stream \u2261 batch under any chunking",
+  "description": "Canonical STFT — batch / stream / analyse with normalized Hann OLA; stream ≡ batch under any chunking",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
@@ -32,5 +32,14 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/stft.git",
+    "directory": "packages/stft"
+  },
+  "homepage": "https://github.com/audiojs/stft/tree/main/packages/stft",
+  "bugs": {
+    "url": "https://github.com/audiojs/stft/issues"
   }
 }
