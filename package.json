@@ -1,28 +1,50 @@
 {
-  "name": "@audio/stft-root",
-  "version": "1.0.0",
+  "name": "@audio/stft",
+  "version": "1.0.2",
   "type": "module",
   "sideEffects": false,
-  "description": "Canonical STFT + window — workspace for @audio/stft and @audio/window",
-  "workspaces": [
-    "packages/*"
+  "description": "Canonical STFT — batch / stream / analyse with normalized Hann OLA; stream ≡ batch under any chunking",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "stft.js",
+    "util.js"
   ],
+  "dependencies": {
+    "fourier-transform": "^2.3.0"
+  },
   "keywords": [
     "audio",
     "dsp",
     "stft",
-    "window"
+    "fft",
+    "overlap-add",
+    "spectral"
   ],
   "license": "MIT",
   "author": "Dmitry Iv. <dfcreative@gmail.com>",
   "engines": {
     "node": ">=18"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/stft.git"
+  },
+  "homepage": "https://github.com/audiojs/stft#readme",
+  "bugs": {
+    "url": "https://github.com/audiojs/stft/issues"
+  },
   "scripts": {
     "test": "node test.js"
   },
   "devDependencies": {
     "tst": "^9.4.0"
-  },
-  "private": true
+  }
 }
