@@ -36,6 +36,25 @@ test('stft — stream ≡ batch across arbitrary chunking', () => {
 	ok(maxDiff(batch, cat, 2048, batch.length - 2048) < 1e-6, 'stream matches batch')
 })
 
+// Tail fix regression: frames start at every hop through the last sample, so the
+// final N−hop samples keep the steady-state overlap count instead of dying early.
+test('stft — tail is reconstructed at full amplitude (OLA tail fix)', () => {
+	let x = sine(440, 8192)
+	let y = stftBatch(x, identity, { fs })
+	ok(maxDiff(x, y, x.length - 1024, x.length) < 1e-4, 'last 1024 samples transparent, got ' + maxDiff(x, y, x.length - 1024, x.length))
+})
+
+test('stft — input shorter than one frame produces output (was silence)', () => {
+	let x = sine(440, 700) // < default frameSize 2048
+	let y = stftBatch(x, identity, { fs })
+	ok(y.length === x.length, 'same length out')
+	// single-frame OLA is window-attenuated by design; the old loop bound produced
+	// all-zeros here — assert non-silence, not transparency
+	let peak = 0
+	for (let i = 0; i < y.length; i++) peak = Math.max(peak, Math.abs(y[i]))
+	ok(peak > 1e-3, 'sub-frame input no longer dropped, peak ' + peak)
+})
+
 test('stft — analyse visits every frame with correct peak bin', () => {
 	let x = sine(1000, fs)
 	let frames = 0, peakOk = true
