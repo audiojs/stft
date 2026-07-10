@@ -15,7 +15,8 @@
     "util.js"
   ],
   "dependencies": {
-    "fourier-transform": "^2.3.0"
+    "fourier-transform": "^2.3.0",
+    "@audio/window": "^1.0.2"
   },
   "keywords": [
     "audio",

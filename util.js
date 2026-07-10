@@ -1,5 +1,6 @@
-// Internal — Hann window + stream ring buffers + OLA normalization.
-// Canonical source extracted from @audio/denoise-core (the ecosystem original).
+// Internal — Hann window (via @audio/window) + stream ring buffers + OLA normalization.
+
+import window from '@audio/window'
 
 export const PI2 = Math.PI * 2
 
@@ -8,8 +9,7 @@ let _hannCache = new Map()
 export function hannWindow(N) {
   let w = _hannCache.get(N)
   if (w) return w
-  w = new Float64Array(N)
-  for (let i = 0; i < N; i++) w[i] = 0.5 * (1 - Math.cos(PI2 * i / N))
+  w = window('hann', N, { periodic: true })
   _hannCache.set(N, w)
   return w
 }
