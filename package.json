@@ -1,6 +1,6 @@
 {
   "name": "@audio/stft",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "sideEffects": false,
   "description": "Canonical STFT — batch / stream / analyse with normalized Hann OLA; stream ≡ batch under any chunking",
