@@ -1,5 +1,7 @@
 # @audio/stft
 
+Try it in the browser: [Spectrogram](https://audiojs.dev/util/spectrogram/). Runs on this package, nothing is uploaded.
+
 > Canonical STFT for the `@audio` ecosystem — batch / stream / analyse, stream ≡ batch under any chunking.
 
 Hann analysis + synthesis windows with correctly normalized overlap-add. Extracted verbatim from `@audio/denoise-core` (differential-tested there since wave 1), including the shared stream ring-compaction fix.
