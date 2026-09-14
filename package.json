@@ -3,16 +3,20 @@
   "version": "1.0.6",
   "type": "module",
   "sideEffects": false,
-  "description": "Canonical STFT \u2014 batch / stream / analyse with normalized Hann OLA; stream \u2261 batch under any chunking",
+  "description": "Canonical STFT — batch / stream / analyse with normalized Hann OLA; stream ≡ batch under any chunking",
   "main": "index.js",
   "exports": {
-    ".": "./index.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "index.js",
     "stft.js",
-    "util.js"
+    "util.js",
+    "*.d.ts"
   ],
   "dependencies": {
     "fourier-transform": "^2.3.0",
@@ -48,5 +52,6 @@
   "devDependencies": {
     "tst": "^9.4.0"
   },
-  "funding": "https://github.com/sponsors/audiojs"
+  "funding": "https://github.com/sponsors/audiojs",
+  "types": "./index.d.ts"
 }
