@@ -86,7 +86,7 @@ export function stftStream(process, opts) {
   let nf = normFloor(win, hop)
 
   let st = makeStreamBufs(N, nf)
-  let aPos = 0, flushed = false
+  let aPos = 0, flushed = false, fed = 0, sent = 0
 
   function run() {
     while (aPos + N <= st.il) {
@@ -106,13 +106,21 @@ export function stftStream(process, opts) {
 
   return {
     write(chunk) {
-      appendIn(st, chunk); run()
-      return take(st, Math.max(0, st.pos - N + hop))
+      appendIn(st, chunk); run(); fed += chunk.length
+      // samples below pos are final: every later frame starts at pos or beyond, so
+      // emitting them now bounds the hold-back at N − 1 (a frame must fill first)
+      let out = take(st, st.pos)
+      sent += out.length
+      return out
     },
     flush() {
       if (!flushed) { appendIn(st, new Float32Array(N)); flushed = true }
       run()
-      return take(st, st.pos)
+      // the padding frames run past the input by up to a hop: stop where the input
+      // stopped, so the stream's total length equals the batch's
+      let out = take(st, st.pos).subarray(0, Math.max(0, fed - sent))
+      sent += out.length
+      return out
     }
   }
 }

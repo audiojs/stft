@@ -36,6 +36,24 @@ test('stft — stream ≡ batch across arbitrary chunking', () => {
 	ok(maxDiff(batch, cat, 2048, batch.length - 2048) < 1e-6, 'stream matches batch')
 })
 
+test('stft — stream holds back under one frame and ends where the input ends', () => {
+	// A sample is final once no later frame covers it: the stream emits it then, so a
+	// fixed-block host needs at most N − 1 samples of delay, and flush() pads no extra tail
+	let x = sine(330, 12345), N = 2048
+	let batch = stftBatch(x, identity, { fs })
+	let s = stftStream(identity, { fs }), parts = [], out = 0, held = 0
+	for (let i = 0; i < x.length; i++) {
+		let p = s.write(x.subarray(i, i + 1)); parts.push(p); out += p.length
+		held = Math.max(held, i + 1 - out)
+	}
+	parts.push(s.flush())
+	let cat = new Float32Array(parts.reduce((a, p) => a + p.length, 0)), o = 0
+	for (let p of parts) { cat.set(p, o); o += p.length }
+	ok(held === N - 1, `hold-back ${held} = N − 1`)
+	ok(cat.length === x.length, `stream length ${cat.length} = input ${x.length}`)
+	ok(maxDiff(batch, cat) < 1e-6, 'stream ≡ batch over the whole signal')
+})
+
 // Tail fix regression: frames start at every hop through the last sample, so the
 // final N−hop samples keep the steady-state overlap count instead of dying early.
 test('stft — tail is reconstructed at full amplitude (OLA tail fix)', () => {
