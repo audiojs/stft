@@ -1,15 +1,17 @@
-// Internal — Hann window (via @audio/window) + stream ring buffers + OLA normalization.
+// Internal — Hann window + stream ring buffers + OLA normalization.
 
-import window from '@audio/window'
+import hann from 'window-function/hann'
 
 export const PI2 = Math.PI * 2
 
 
+// Periodic (DFT-even) Hann: the N+1-point window without its last point. The one window, not the whole kit.
 let _hannCache = new Map()
 export function hannWindow(N) {
   let w = _hannCache.get(N)
   if (w) return w
-  w = window('hann', N, { periodic: true })
+  w = new Float64Array(N)
+  for (let i = 0; i < N; i++) w[i] = hann(i, N + 1)
   _hannCache.set(N, w)
   return w
 }

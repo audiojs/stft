@@ -10,7 +10,7 @@
 import { fft, ifft } from 'fourier-transform'
 import { hannWindow, makeStreamBufs, appendIn, growOut, compactIn, take, normFloor, PI2 } from './util.js'
 
-export function wrapPhase(p) { return p - Math.round(p / PI2) * PI2 }
+export function wrapPhase(p) { return p - Math.floor(p / PI2 + 0.5) * PI2 }  // floor(x + 0.5) rounds like Math.round here, several times faster in V8 (hot: per bin per frame)
 
 function frame(data, pos, win, half, process, state, ctx, sc) {
   let N = win.length, f = sc.f

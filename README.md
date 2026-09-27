@@ -24,7 +24,7 @@ let tail = s.flush()
 stftAnalyse(input, (mag, phase, ctx) => { /* inspect */ }, { fs: 44100 })
 ```
 
-Also exports `wrapPhase`, `hannWindow`, `normFloor`, `PI2` (window math shared with [`@audio/window`](https://github.com/audiojs/window)).
+Also exports `wrapPhase`, `hannWindow` (periodic Hann, from [`window-function`](https://github.com/scijs/window-function)), `normFloor`, `PI2`.
 
 ## See also
 
