@@ -3,6 +3,8 @@ export interface StftContext {
   hop: number; half: number; N: number; fs: number
   /** Radians per bin, 2π/N. */
   freqPerBin: number
+  /** The frame's first sample in the input: hop − N for the first frame (before the input it reads the input's mirror image), then every hop. */
+  pos: number
 }
 export interface Spectrum { mag: ArrayLike<number>; phase: ArrayLike<number> }
 /** State starts empty and persists for the duration of one batch/stream. */

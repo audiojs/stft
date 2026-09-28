@@ -4,7 +4,7 @@ Try it in the browser: [Spectrogram](https://audiojs.dev/util/spectrogram/). Run
 
 > Canonical STFT for the `@audio` ecosystem — batch / stream / analyse, stream ≡ batch under any chunking.
 
-Hann analysis + synthesis windows with correctly normalized overlap-add. Extracted verbatim from `@audio/denoise-core` (differential-tested there since wave 1), including the shared stream ring-compaction fix.
+Hann analysis + synthesis windows with correctly normalized overlap-add. Frames run on the hop grid from the one that starts N − hop before the input to the last sample, so every sample, the first and the last included, has the full overlap: an identity process returns the input exactly. Before the input, frames see its mirror image (numpy's `reflect`), so a process that learns from the first frames meets the signal's level. `ctx.pos` gives each frame's first input sample (negative for those early frames). Extracted verbatim from `@audio/denoise-core` (differential-tested there since wave 1), including the shared stream ring-compaction fix.
 
 ```js
 import { stftBatch, stftStream, stftAnalyse } from '@audio/stft'

@@ -18,7 +18,46 @@ function maxDiff (a, b, from = 0, to = Math.min(a.length, b.length)) {
 test('stft — identity roundtrip is transparent', () => {
 	let x = sine(440, fs)
 	let y = stftBatch(x, identity, { fs })
-	ok(maxDiff(x, y, 2048, x.length - 2048) < 1e-6, 'batch roundtrip')
+	ok(maxDiff(x, y) < 1e-6, 'batch roundtrip, first to last sample')
+})
+
+// Head fix regression: frames start on the hop grid N − hop before the input, so the first samples keep the
+// steady-state overlap count too. From sample 0 alone, they fell under the normalization floor: a fade-in of
+// -52 dB over the first 5 ms, -8 dB at 10–20 ms (N = 2048). Reference: the input itself (identity process).
+test('stft: the head is reconstructed at full amplitude, no fade-in, batch and stream, any frame size', () => {
+	let seed = 1, x = new Float32Array(8192).map(() => (seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5)
+	for (let N of [512, 1024, 2048, 4096]) for (let hop of [N >> 1, N >> 2]) {
+		let y = stftBatch(x, identity, { fs, frameSize: N, hopSize: hop })
+		let s = stftStream(identity, { fs, frameSize: N, hopSize: hop }), parts = []
+		for (let i = 0; i < x.length; i += 100) parts.push(s.write(x.subarray(i, i + 100)))
+		parts.push(s.flush())
+		let z = new Float32Array(parts.reduce((a, p) => a + p.length, 0)), o = 0
+		for (let p of parts) { z.set(p, o); o += p.length }
+		ok(maxDiff(x, y, 0, N) < 1e-6 && maxDiff(x, z, 0, N) < 1e-6, `N ${N}, hop ${hop}: first frame transparent (batch ${maxDiff(x, y, 0, N).toExponential(0)}, stream ${maxDiff(x, z, 0, N).toExponential(0)})`)
+	}
+})
+
+test('stft: ctx.pos is each frame\'s first input sample, from hop − N, batch and stream alike', () => {
+	let x = sine(440, 10000), N = 2048, hop = 512
+	let seen = mode => { let p = []; return [p, (mag, phase, state, ctx) => { p.push(ctx.pos); return { mag, phase } }] }
+	let [pb, fb] = seen(), [ps, fs_] = seen()
+	stftBatch(x, fb, { fs, frameSize: N, hopSize: hop })
+	let s = stftStream(fs_, { fs, frameSize: N, hopSize: hop })
+	for (let i = 0; i < x.length; i += 777) s.write(x.subarray(i, i + 777))
+	s.flush()
+	ok(pb[0] === hop - N && pb.every((p, i) => p === hop - N + i * hop) && pb[pb.length - 1] < x.length, `batch: ${pb[0]}, then every ${hop}, to ${pb[pb.length - 1]}`)
+	ok(ps.slice(0, pb.length).every((p, i) => p === pb[i]), 'stream: the same positions')
+})
+
+// Before the input, frames see its mirror image (x[-k] = x[k], numpy's 'reflect'): a process that learns from
+// the first frames (a noise profile) meets the signal's own level. Over silence, the first frame of steady noise
+// read 7 dB low, and a Wiener denoiser's profile with it: VoiceBank+DEMAND SI-SDR gain +2.1 dB against +6.0.
+test('stft: frames that start before the input carry its level (mirrored, not silent)', () => {
+	let seed = 5, x = new Float32Array(20000).map(() => (seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5)
+	let levels = [], rec = (mag, phase) => { let e = 0; for (let k = 0; k < mag.length; k++) e += mag[k] * mag[k]; levels.push(e); return { mag, phase } }
+	stftBatch(x, rec, { fs })
+	let steady = levels.slice(8, 20).reduce((a, b) => a + b) / 12
+	ok(levels.slice(0, 3).every(e => Math.abs(10 * Math.log10(e / steady)) < 1.5), 'first frames within 1.5 dB of the steady level: ' + levels.slice(0, 3).map(e => (10 * Math.log10(e / steady)).toFixed(1)).join(', '))
 })
 
 test('stft — stream ≡ batch across arbitrary chunking', () => {
@@ -33,7 +72,7 @@ test('stft — stream ≡ batch across arbitrary chunking', () => {
 	parts.push(s.flush())
 	let cat = new Float32Array(parts.reduce((a, p) => a + p.length, 0)), o = 0
 	for (let p of parts) { cat.set(p, o); o += p.length }
-	ok(maxDiff(batch, cat, 2048, batch.length - 2048) < 1e-6, 'stream matches batch')
+	ok(maxDiff(batch, cat) < 1e-6, 'stream matches batch')
 })
 
 test('stft — stream holds back under one frame and ends where the input ends', () => {
@@ -62,15 +101,11 @@ test('stft — tail is reconstructed at full amplitude (OLA tail fix)', () => {
 	ok(maxDiff(x, y, x.length - 1024, x.length) < 1e-4, 'last 1024 samples transparent, got ' + maxDiff(x, y, x.length - 1024, x.length))
 })
 
-test('stft — input shorter than one frame produces output (was silence)', () => {
+test('stft: input shorter than one frame comes out whole (was silence, then window-attenuated)', () => {
 	let x = sine(440, 700) // < default frameSize 2048
 	let y = stftBatch(x, identity, { fs })
 	ok(y.length === x.length, 'same length out')
-	// single-frame OLA is window-attenuated by design; the old loop bound produced
-	// all-zeros here — assert non-silence, not transparency
-	let peak = 0
-	for (let i = 0; i < y.length; i++) peak = Math.max(peak, Math.abs(y[i]))
-	ok(peak > 1e-3, 'sub-frame input no longer dropped, peak ' + peak)
+	ok(maxDiff(x, y) < 1e-6, 'sub-frame input transparent, max |Δ| ' + maxDiff(x, y).toExponential(1))
 })
 
 test('stft — analyse visits every frame with correct peak bin', () => {
