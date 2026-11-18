@@ -1,4 +1,4 @@
-// Internal — Hann window + stream ring buffers + OLA normalization.
+// Internal — Hann window + stream ring buffers + OLA normalization; |X| of complex bins.
 
 import hann from 'window-function/hann'
 
@@ -16,22 +16,35 @@ export function hannWindow(N) {
   return w
 }
 
-export function makeStreamBufs(N, nf = 0) {
+// Sized for chunks up to maxChunk, so a write never grows them: the input kept is under 3N before a chunk (frames
+// wait for N, the buffer moves down past 2N), and the output from the last sample taken (moved down past 8N) reaches
+// a chunk's frames plus one frame past that; a flush adds N. A longer chunk grows them once
+export function makeStreamBufs(N, nf = 0, maxChunk = N) {
+  let L = Math.max(N, maxChunk)
   return {
     N, nf,
-    ib: new Float32Array(N * 4), il: 0,
-    ob: new Float32Array(N * 8), nb: new Float32Array(N * 8),
+    ib: new Float32Array(3 * N + L), il: 0,
+    ob: new Float32Array(9 * N + L), nb: new Float32Array(9 * N + L),
     pos: 0, oread: 0, hi: 0
   }
 }
 
-export function appendIn(st, chunk) {
-  let need = st.il + chunk.length
+// `len` samples of chunk (all of it by default) after the input
+export function appendIn(st, chunk, len = chunk.length) {
+  let need = st.il + len
   if (need > st.ib.length) {
     let b = new Float32Array(Math.max(need * 2, st.ib.length * 2))
     b.set(st.ib.subarray(0, st.il)); st.ib = b
   }
-  st.ib.set(chunk, st.il); st.il += chunk.length
+  if (len === chunk.length) st.ib.set(chunk, st.il)
+  else for (let i = 0; i < len; i++) st.ib[st.il + i] = chunk[i]   // a loop: a subarray to set from is an allocation
+  st.il += len
+}
+
+// n zeros after the input (a flush's padding), in place of a chunk of them made for it
+export function appendZeros(st, n) {
+  if (st.il + n > st.ib.length) appendIn(st, new Float32Array(n))
+  else { st.ib.fill(0, st.il, st.il + n); st.il += n }
 }
 
 export function growOut(st, need) {
@@ -46,11 +59,24 @@ export function compactIn(st, trim) {
   st.ib.copyWithin(0, trim, st.il); st.il -= trim
 }
 
+// The final samples up to upTo, in a new array
 export function take(st, upTo) {
   upTo = Math.min(upTo, st.pos)
   if (upTo <= st.oread) return new Float32Array(0)
-  let len = Math.floor(upTo - st.oread)
-  let out = new Float32Array(len)
+  let out = new Float32Array(Math.floor(upTo - st.oread))
+  read(st, out, out.length)
+  return out
+}
+
+// The final samples up to upTo into out from its start, as many as it holds: how many (the rest waits for the next)
+export function takeInto(st, upTo, out) {
+  upTo = Math.min(upTo, st.pos)
+  let len = upTo > st.oread ? Math.min(Math.floor(upTo - st.oread), out.length) : 0
+  read(st, out, len)
+  return len
+}
+
+function read(st, out, len) {
   for (let i = 0; i < len; i++) {
     let j = st.oread + i, n = st.nf > 0 ? Math.max(st.nb[j], st.nf) : st.nb[j]
     out[i] = n > 1e-8 ? st.ob[j] / n : 0
@@ -63,6 +89,12 @@ export function take(st, upTo) {
     st.pos -= st.oread; st.hi = Math.max(0, st.hi - st.oread); st.oread = 0
     st.ob.fill(0, st.hi); st.nb.fill(0, st.hi)
   }
+}
+
+// Each bin's magnitude |X| into out (a new array when omitted): the expression the polar form's mag is, so a gain
+// computed from it is the polar form's gain to the bit
+export function magnitude(re, im, out = new Float64Array(re.length)) {
+  for (let k = 0; k < re.length; k++) out[k] = Math.sqrt(re[k] * re[k] + im[k] * im[k])
   return out
 }
 

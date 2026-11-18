@@ -47,7 +47,8 @@
     "url": "https://github.com/audiojs/stft/issues"
   },
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "prepublishOnly": "node ../compile/tools/tested.js"
   },
   "devDependencies": {
     "tst": "^9.4.0"
